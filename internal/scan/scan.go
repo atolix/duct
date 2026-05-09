@@ -17,11 +17,13 @@ func ScanDir(target string) ([]Entry, error) {
 		return nil, err
 	}
 
-	var entries []Entry
+	var (
+		entries []Entry
+		wg      sync.WaitGroup
+		ch      = make(chan Entry, len(files))
+		sem     = make(chan struct{}, 8)
+	)
 
-	ch := make(chan Entry, len(files))
-	sem := make(chan struct{}, 8)
-	var wg sync.WaitGroup
 	for _, f := range files {
 		path := filepath.Join(target, f.Name())
 
