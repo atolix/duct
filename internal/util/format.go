@@ -19,15 +19,18 @@ func Humanize(size int64) string {
 	return fmt.Sprintf("%.1f%cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
+func shortenWithHome(path, home string) string {
+	if rest, ok := strings.CutPrefix(path, home); ok {
+		return "~" + rest
+	}
+	return path
+}
+
 func Shorten(path string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return path
 	}
 
-	if rest, ok := strings.CutPrefix(path, home); ok {
-		return "~" + rest
-	}
-
-	return path
+	return shortenWithHome(path, home)
 }
