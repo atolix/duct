@@ -14,6 +14,9 @@ type Entry struct {
 
 func main() {
 	target := "."
+	if len(os.Args) > 1 {
+		target = os.Args[1]
+	}
 
 	files, err := os.ReadDir(target)
 	if err != nil {
