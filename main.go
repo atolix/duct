@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 type Entry struct {
@@ -33,7 +34,7 @@ func main() {
 
 	var entries []Entry
 
-	ch := make(chan Entry)
+	ch := make(chan Entry, len(files))
 	sem := make(chan struct{}, 8)
 	for _, f := range files {
 		path := filepath.Join(target, f.Name())
@@ -49,6 +50,7 @@ func main() {
 			} else {
 				info, err := f.Info()
 				if err != nil {
+					ch <- Entry{Path: p, Size: 0}
 					return
 				}
 				size = info.Size()
@@ -79,7 +81,7 @@ func main() {
 	var total int64
 	for _, f := range entries {
 		total += f.Size
-		fmt.Println(humanize(f.Size), f.Path)
+		fmt.Println(humanize(f.Size), shorten(f.Path))
 	}
 	fmt.Println("========================")
 	fmt.Println("Total:", humanize(total))
@@ -124,4 +126,17 @@ func filterByMinMB(entries []Entry, minSize int64) []Entry {
 		filtered = append(filtered, e)
 	}
 	return filtered
+}
+
+func shorten(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+
+	if strings.HasPrefix(path, home) {
+		return "~" + strings.TrimPrefix(path, home)
+	}
+
+	return path
 }
