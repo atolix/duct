@@ -4,16 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
-)
 
-type Entry struct {
-	Path string
-	Size int64
-}
+	"github.com/atolix/duct/internal/scan"
+)
 
 func main() {
 	topN := flag.Int("top", 0, "top N entries")
@@ -27,7 +22,7 @@ func main() {
 		target = flag.Arg(0)
 	}
 
-	entries, err := scanDir(target)
+	entries, err := scan.ScanDir(target)
 	if err != nil {
 		fmt.Println("error:", err)
 		return
@@ -43,23 +38,6 @@ func main() {
 	printEntries(entries)
 }
 
-func dirSize(path string) int64 {
-	var size int64
-
-	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-
-		if !info.IsDir() {
-			size += info.Size()
-		}
-		return nil
-	})
-
-	return size
-}
-
 func humanize(size int64) string {
 	const unit = 1024
 	if size < unit {
@@ -73,8 +51,8 @@ func humanize(size int64) string {
 	return fmt.Sprintf("%.1f%cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
-func filterByMinMB(entries []Entry, minSize int64) []Entry {
-	var filtered []Entry
+func filterByMinMB(entries []scan.Entry, minSize int64) []scan.Entry {
+	var filtered []scan.Entry
 	for _, e := range entries {
 		if minSize > 0 && e.Size < minSize {
 			continue
@@ -84,7 +62,7 @@ func filterByMinMB(entries []Entry, minSize int64) []Entry {
 	return filtered
 }
 
-func sortEntries(entries []Entry) {
+func sortEntries(entries []scan.Entry) {
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Size > entries[j].Size
 	})
@@ -103,60 +81,7 @@ func shorten(path string) string {
 	return path
 }
 
-func scanDir(target string) ([]Entry, error) {
-	files, err := os.ReadDir(target)
-	if err != nil {
-		fmt.Println("error:", err)
-		return nil, err
-	}
-
-	var entries []Entry
-
-	ch := make(chan Entry, len(files))
-	sem := make(chan struct{}, 8)
-	var wg sync.WaitGroup
-	for _, f := range files {
-		path := filepath.Join(target, f.Name())
-
-		sem <- struct{}{}
-		wg.Add(1)
-
-		go func(p string, f os.DirEntry) {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			var size int64
-			if f.IsDir() {
-				size = dirSize(p)
-			} else {
-				info, err := f.Info()
-				if err != nil {
-					ch <- Entry{Path: p, Size: 0}
-					return
-				}
-				size = info.Size()
-			}
-
-			ch <- Entry{
-				Path: p,
-				Size: size,
-			}
-		}(path, f)
-	}
-
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-
-	for e := range ch {
-		entries = append(entries, e)
-	}
-
-	return entries, nil
-}
-
-func printEntries(entries []Entry) {
+func printEntries(entries []scan.Entry) {
 	var total int64
 	for _, f := range entries {
 		total += f.Size
