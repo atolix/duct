@@ -55,24 +55,18 @@ func main() {
 		}
 	}
 
-	var filtered []Entry
-	for _, e := range entries {
-		if minSize > 0 && e.Size < minSize {
-			continue
-		}
-		filtered = append(filtered, e)
-	}
+	entries = filterByMinMB(entries, minSize)
 
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].Size > filtered[j].Size
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Size > entries[j].Size
 	})
 
-	if *topN > 0 && *topN < len(filtered) {
-		filtered = filtered[:*topN]
+	if *topN > 0 && *topN < len(entries) {
+		entries = entries[:*topN]
 	}
 
 	var total int64
-	for _, f := range filtered {
+	for _, f := range entries {
 		total += f.Size
 		fmt.Println(humanize(f.Size), f.Path)
 	}
@@ -108,4 +102,15 @@ func humanize(size int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f%cB", float64(size)/float64(div), "KMGTPE"[exp])
+}
+
+func filterByMinMB(entries []Entry, minSize int64) []Entry {
+	var filtered []Entry
+	for _, e := range entries {
+		if minSize > 0 && e.Size < minSize {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	return filtered
 }
