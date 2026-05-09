@@ -34,22 +34,13 @@ func main() {
 	}
 
 	entries = filterByMinMB(entries, minSize)
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Size > entries[j].Size
-	})
+	sortEntries(entries)
 
 	if *topN > 0 && *topN < len(entries) {
 		entries = entries[:*topN]
 	}
 
-	var total int64
-	for _, f := range entries {
-		total += f.Size
-		fmt.Println(humanize(f.Size), shorten(f.Path))
-	}
-	fmt.Println("========================")
-	fmt.Println("Total:", humanize(total))
+	printEntires(entries)
 }
 
 func dirSize(path string) int64 {
@@ -93,6 +84,12 @@ func filterByMinMB(entries []Entry, minSize int64) []Entry {
 	return filtered
 }
 
+func sortEntries(entries []Entry) {
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Size > entries[j].Size
+	})
+}
+
 func shorten(path string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -130,7 +127,7 @@ func scanDir(target string) ([]Entry, error) {
 
 			var size int64
 			if f.IsDir() {
-				size = dirSize(path)
+				size = dirSize(p)
 			} else {
 				info, err := f.Info()
 				if err != nil {
@@ -157,4 +154,14 @@ func scanDir(target string) ([]Entry, error) {
 	}
 
 	return entries, nil
+}
+
+func printEntires(entries []Entry) {
+	var total int64
+	for _, f := range entries {
+		total += f.Size
+		fmt.Println(humanize(f.Size), shorten(f.Path))
+	}
+	fmt.Println("========================")
+	fmt.Println("Total:", humanize(total))
 }
