@@ -27,53 +27,10 @@ func main() {
 		target = flag.Arg(0)
 	}
 
-	files, err := os.ReadDir(target)
+	entries, err := scanDir(target)
 	if err != nil {
 		fmt.Println("error:", err)
 		return
-	}
-
-	var entries []Entry
-
-	ch := make(chan Entry, len(files))
-	sem := make(chan struct{}, 8)
-	var wg sync.WaitGroup
-	for _, f := range files {
-		path := filepath.Join(target, f.Name())
-
-		sem <- struct{}{}
-		wg.Add(1)
-
-		go func(p string, f os.DirEntry) {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			var size int64
-			if f.IsDir() {
-				size = dirSize(path)
-			} else {
-				info, err := f.Info()
-				if err != nil {
-					ch <- Entry{Path: p, Size: 0}
-					return
-				}
-				size = info.Size()
-			}
-
-			ch <- Entry{
-				Path: p,
-				Size: size,
-			}
-		}(path, f)
-	}
-
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-
-	for e := range ch {
-		entries = append(entries, e)
 	}
 
 	entries = filterByMinMB(entries, minSize)
@@ -147,4 +104,57 @@ func shorten(path string) string {
 	}
 
 	return path
+}
+
+func scanDir(target string) ([]Entry, error) {
+	files, err := os.ReadDir(target)
+	if err != nil {
+		fmt.Println("error:", err)
+		return nil, err
+	}
+
+	var entries []Entry
+
+	ch := make(chan Entry, len(files))
+	sem := make(chan struct{}, 8)
+	var wg sync.WaitGroup
+	for _, f := range files {
+		path := filepath.Join(target, f.Name())
+
+		sem <- struct{}{}
+		wg.Add(1)
+
+		go func(p string, f os.DirEntry) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			var size int64
+			if f.IsDir() {
+				size = dirSize(path)
+			} else {
+				info, err := f.Info()
+				if err != nil {
+					ch <- Entry{Path: p, Size: 0}
+					return
+				}
+				size = info.Size()
+			}
+
+			ch <- Entry{
+				Path: p,
+				Size: size,
+			}
+		}(path, f)
+	}
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	for e := range ch {
+		entries = append(entries, e)
+	}
+
+	return entries, nil
 }
