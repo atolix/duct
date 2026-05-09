@@ -15,7 +15,10 @@ type Entry struct {
 
 func main() {
 	topN := flag.Int("top", 0, "top N entries")
+	minMB := flag.Int("min", 0, "minimum size in MB")
 	flag.Parse()
+
+	minSize := int64(*minMB) * 1024 * 1024
 
 	target := "."
 	if flag.NArg() > 0 {
@@ -63,6 +66,9 @@ func main() {
 
 	var total int64
 	for _, e := range entries {
+		if minSize > 0 && e.Size < minSize {
+			continue
+		}
 		total += e.Size
 		fmt.Println(humanize(e.Size), e.Path)
 	}
