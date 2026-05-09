@@ -33,26 +33,37 @@ func main() {
 
 	var entries []Entry
 
+	ch := make(chan Entry)
+	sem := make(chan struct{}, 8)
 	for _, f := range files {
 		path := filepath.Join(target, f.Name())
 
-		if f.IsDir() {
-			size := dirSize(path)
-			entries = append(entries, Entry{
-				Path: path,
-				Size: size,
-			})
-		} else {
-			info, err := f.Info()
-			if err != nil {
-				continue
+		sem <- struct{}{}
+
+		go func(p string, f os.DirEntry) {
+			defer func() { <-sem }()
+
+			var size int64
+			if f.IsDir() {
+				size = dirSize(path)
+			} else {
+				info, err := f.Info()
+				if err != nil {
+					return
+				}
+				size = info.Size()
 			}
-			size := info.Size()
-			entries = append(entries, Entry{
-				Path: path,
+
+			ch <- Entry{
+				Path: p,
 				Size: size,
-			})
-		}
+			}
+		}(path, f)
+	}
+
+	for range files {
+		e := <-ch
+		entries = append(entries, e)
 	}
 
 	entries = filterByMinMB(entries, minSize)
