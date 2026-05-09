@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 )
 
 type Entry struct {
@@ -36,12 +37,15 @@ func main() {
 
 	ch := make(chan Entry, len(files))
 	sem := make(chan struct{}, 8)
+	var wg sync.WaitGroup
 	for _, f := range files {
 		path := filepath.Join(target, f.Name())
 
 		sem <- struct{}{}
+		wg.Add(1)
 
 		go func(p string, f os.DirEntry) {
+			defer wg.Done()
 			defer func() { <-sem }()
 
 			var size int64
@@ -63,8 +67,12 @@ func main() {
 		}(path, f)
 	}
 
-	for range files {
-		e := <-ch
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	for e := range ch {
 		entries = append(entries, e)
 	}
 
