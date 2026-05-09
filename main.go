@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,9 +14,12 @@ type Entry struct {
 }
 
 func main() {
+	topN := flag.Int("top", 0, "top N entries")
+	flag.Parse()
+
 	target := "."
-	if len(os.Args) > 1 {
-		target = os.Args[1]
+	if flag.NArg() > 0 {
+		target = flag.Arg(0)
 	}
 
 	files, err := os.ReadDir(target)
@@ -51,6 +55,11 @@ func main() {
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Size > entries[j].Size
 	})
+
+	fmt.Println("topN:", *topN)
+	if *topN > 0 && *topN < len(entries) {
+		entries = entries[:*topN]
+	}
 
 	var total int64
 	for _, e := range entries {
