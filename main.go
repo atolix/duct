@@ -16,7 +16,6 @@ func main() {
 	flag.Parse()
 
 	minSize := int64(*minMB) * 1024 * 1024
-
 	target := "."
 	if flag.NArg() > 0 {
 		target = flag.Arg(0)
@@ -30,10 +29,7 @@ func main() {
 
 	entries = filterByMinMB(entries, minSize)
 	sortEntries(entries)
-
-	if *topN > 0 && *topN < len(entries) {
-		entries = entries[:*topN]
-	}
+	entries = takeTopN(entries, *topN)
 
 	printEntries(entries)
 }
@@ -66,6 +62,13 @@ func sortEntries(entries []scan.Entry) {
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Size > entries[j].Size
 	})
+}
+
+func takeTopN(entries []scan.Entry, topN int) []scan.Entry {
+	if topN > 0 && topN < len(entries) {
+		entries = entries[:topN]
+	}
+	return entries
 }
 
 func shorten(path string) string {
