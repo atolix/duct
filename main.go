@@ -55,22 +55,26 @@ func main() {
 		}
 	}
 
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Size > entries[j].Size
-	})
-
-	fmt.Println("topN:", *topN)
-	if *topN > 0 && *topN < len(entries) {
-		entries = entries[:*topN]
-	}
-
-	var total int64
+	var filtered []Entry
 	for _, e := range entries {
 		if minSize > 0 && e.Size < minSize {
 			continue
 		}
-		total += e.Size
-		fmt.Println(humanize(e.Size), e.Path)
+		filtered = append(filtered, e)
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Size > filtered[j].Size
+	})
+
+	if *topN > 0 && *topN < len(filtered) {
+		filtered = filtered[:*topN]
+	}
+
+	var total int64
+	for _, f := range filtered {
+		total += f.Size
+		fmt.Println(humanize(f.Size), f.Path)
 	}
 	fmt.Println("========================")
 	fmt.Println("Total:", humanize(total))
