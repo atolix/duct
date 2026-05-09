@@ -52,9 +52,13 @@ func main() {
 		return entries[i].Size > entries[j].Size
 	})
 
+	var total int64
 	for _, e := range entries {
+		total += e.Size
 		fmt.Println(humanize(e.Size), e.Path)
 	}
+	fmt.Println("========================")
+	fmt.Println("Total:", humanize(total))
 }
 
 func dirSize(path string) int64 {
