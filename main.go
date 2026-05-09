@@ -40,7 +40,7 @@ func main() {
 		entries = entries[:*topN]
 	}
 
-	printEntires(entries)
+	printEntries(entries)
 }
 
 func dirSize(path string) int64 {
@@ -156,7 +156,7 @@ func scanDir(target string) ([]Entry, error) {
 	return entries, nil
 }
 
-func printEntires(entries []Entry) {
+func printEntries(entries []Entry) {
 	var total int64
 	for _, f := range entries {
 		total += f.Size
