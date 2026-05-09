@@ -26,7 +26,7 @@ func main() {
 		return
 	}
 
-	entries = filterByMinMB(entries, minSize)
+	entries = filterByMinSize(entries, minSize)
 	sortEntries(entries)
 	entries = takeTopN(entries, *topN)
 
@@ -46,7 +46,7 @@ func takeTopN(entries []scan.Entry, topN int) []scan.Entry {
 	return entries
 }
 
-func filterByMinMB(entries []scan.Entry, minSize int64) []scan.Entry {
+func filterByMinSize(entries []scan.Entry, minSize int64) []scan.Entry {
 	var filtered []scan.Entry
 	for _, e := range entries {
 		if minSize > 0 && e.Size < minSize {
